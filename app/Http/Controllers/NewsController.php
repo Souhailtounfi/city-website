@@ -29,12 +29,11 @@ class NewsController extends Controller
             'extra_images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // Store main image
+        // Store main image path (relative, e.g. news_images/filename.jpg)
         $imagePath = $request->hasFile('image')
             ? $request->file('image')->store('news_images', 'public')
             : null;
 
-        // Create news record
         $news = News::create([
             'title_fr' => $validated['title_fr'],
             'title_ar' => $validated['title_ar'],
@@ -42,17 +41,15 @@ class NewsController extends Controller
             'content_ar' => $validated['content_ar'],
             'image' => $imagePath,
         ]);
-        Log::info('News created:', $news->toArray());
 
-        // Store extra images if any
+        // Store extra images in news_images table
         if ($request->hasFile('extra_images')) {
             foreach ($request->file('extra_images') as $image) {
-                $newsImage = new NewsImage([
+                $path = $image->store('news_images', 'public');
+                NewsImage::create([
                     'news_id' => $news->id,
-                    'image' => $image->store('news_images', 'public'),
+                    'image' => $path, // Only the relative path, e.g. news_images/filename.jpg
                 ]);
-                $newsImage->save();
-                Log::info('Extra NewsImage saved:', $newsImage->toArray());
             }
         }
 
@@ -61,6 +58,7 @@ class NewsController extends Controller
             'data' => $news->load('images'),
         ], 201);
     }
+
 
     // Show single news with images
     public function show($id)
@@ -72,17 +70,51 @@ class NewsController extends Controller
     // Update news with optional image updates
     public function update(Request $request, $id)
     {
-        \Log::info('Update request', $request->all());
         $news = News::findOrFail($id);
 
-        $news->update([
-            'title_fr' => $request->title_fr,
-            'title_ar' => $request->title_ar,
-            'content_fr' => $request->content_fr,
-            'content_ar' => $request->content_ar,
+        $validated = $request->validate([
+            'title_fr' => 'required|string|max:255',
+            'title_ar' => 'required|string|max:255',
+            'content_fr' => 'required|string',
+            'content_ar' => 'required|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'extra_images' => 'nullable|array',
+            'extra_images.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        return response()->json(['message' => 'News updated successfully', 'data' => $news]);
+        // Update main image if provided
+        if ($request->hasFile('image')) {
+            if ($news->image) {
+                Storage::disk('public')->delete($news->image);
+            }
+            $validated['image'] = $request->file('image')->store('news_images', 'public');
+        } else {
+            $validated['image'] = $news->image;
+        }
+
+        $news->update([
+            'title_fr' => $validated['title_fr'],
+            'title_ar' => $validated['title_ar'],
+            'content_fr' => $validated['content_fr'],
+            'content_ar' => $validated['content_ar'],
+            'image' => $validated['image'],
+        ]);
+
+        // Add new extra images if any
+        if ($request->hasFile('extra_images')) {
+            foreach ($request->file('extra_images') as $image) {
+                $path = $image->store('news_images', 'public');
+                NewsImage::create([
+                    'news_id' => $news->id,
+                    'image' => $path, // Only the relative path
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'News updated successfully',
+            'data' => $news->fresh('images')
+        ]);
     }
 
     // Delete news and all images
