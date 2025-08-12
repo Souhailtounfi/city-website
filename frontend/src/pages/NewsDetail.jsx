@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useTranslation } from "react-i18next";
 
-export default function NewsDetail({ lang }) {
+export default function NewsDetail() {
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language;
   const { id } = useParams();
   const [news, setNews] = useState(null);
   const navigate = useNavigate();

@@ -5,6 +5,7 @@ import NewsForm from "./pages/NewsForm";
 import Login from "./pages/Login";
 import Navbar from "./components/Navbar";
 import NewsDetail from "./pages/NewsDetail";
+import Footer from "./components/Footer";
 
 function App() {
   const [lang, setLang] = useState("fr");
@@ -19,6 +20,7 @@ function App() {
         <Route path="/news/:id/edit" element={<NewsForm />} />
         <Route path="/news/:id" element={<NewsDetail lang={lang} />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   );
 }
