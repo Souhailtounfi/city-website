@@ -72,14 +72,8 @@ class NewsController extends Controller
     // Update news with optional image updates
     public function update(Request $request, $id)
     {
+        \Log::info('Update request', $request->all());
         $news = News::findOrFail($id);
-
-        $validated = $request->validate([
-            'title_fr' => 'required|string|max:255',
-            'title_ar' => 'required|string|max:255',
-            'content_fr' => 'required|string',
-            'content_ar' => 'required|string',
-        ]);
 
         $news->update([
             'title_fr' => $request->title_fr,
@@ -88,7 +82,7 @@ class NewsController extends Controller
             'content_ar' => $request->content_ar,
         ]);
 
-        return response()->json(['message' => 'News updated successfully']);
+        return response()->json(['message' => 'News updated successfully', 'data' => $news]);
     }
 
     // Delete news and all images
