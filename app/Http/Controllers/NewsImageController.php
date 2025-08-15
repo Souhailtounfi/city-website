@@ -26,4 +26,23 @@ class NewsImageController extends Controller
             'news_id' => $newsId
         ]);
     }
+
+    public function store(\Illuminate\Http\Request $request, \App\Models\News $news)
+    {
+        $request->validate([
+            'images'   => 'required|array|min:1',
+            'images.*' => 'image|max:4096'
+        ]);
+
+        $saved = [];
+        foreach ($request->file('images', []) as $file) {
+            $path = $file->store('news_images', 'public');
+            $saved[] = $news->images()->create(['image' => $path]);
+        }
+
+        return response()->json([
+            'message' => 'Images uploadées',
+            'images'  => $saved
+        ], 201);
+    }
 }

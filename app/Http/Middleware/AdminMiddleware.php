@@ -9,11 +9,9 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        // Just verify the user is authenticated (no extra checks needed)
-        if (! $request->user()) {
-            return response()->json(['message' => 'Unauthorized'], 401);
+        if (!$request->user() || !$request->user()->is_admin) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
-
         return $next($request);
     }
 }

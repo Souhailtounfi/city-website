@@ -1,24 +1,32 @@
 import React, { useState } from "react";
-import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 export default function Login() {
+  const { t } = useTranslation();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { t, i18n } = useTranslation();
-  const lang = i18n.language;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
     try {
-      const res = await api.post("/login", { email, password });
-      localStorage.setItem("token", res.data.token);
-      api.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
+      await login(email, password);
       navigate("/news");
-    } catch {
-      alert("Login failed");
+    } catch (err) {
+      setError(
+        err?.response?.data?.message === "Invalid credentials"
+          ? t("invalid_credentials") || "Identifiants invalides"
+          : t("login_error") || "Erreur de connexion"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,11 +50,13 @@ export default function Login() {
           placeholder={t("password")}
           required
         />
+        {error && <div className="text-red-500">{error}</div>}
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded"
+          className="bg-green-600 text-white px-4 py-2 rounded w-full"
           type="submit"
+          disabled={loading}
         >
-          {t("login")}
+          {loading ? t("loading") : t("login")}
         </button>
       </form>
     </div>

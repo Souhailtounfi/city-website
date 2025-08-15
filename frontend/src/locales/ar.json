@@ -2,6 +2,7 @@
   "news": "الأخبار",
   "add_news": "إضافة خبر",
   "login": "تسجيل الدخول",
+  "invalid_credentials": "بيانات الاعتماد غير صحيحة",
   "headline": "الأخبار",
   "add_announcement": "إضافة إعلان",
   "announcement": "إعلان",
@@ -60,5 +61,10 @@
   "carrieres": "المقالع",
   "eaux_et_forets": "المياه والغابات",
   "tourisme": "السياحة",
-  "artisanat": "الحرف اليدوية"
+  "artisanat": "الحرف اليدوية",
+  "add_admin": "إضافة مشرف",
+  "name": "الاسم",
+  "error_create_admin": "حدث خطأ أثناء إضافة المشرف",
+  "upload_images": "إضافة صور",
+  "uploading": "جارٍ الرفع..."
 }

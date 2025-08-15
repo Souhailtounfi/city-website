@@ -2,6 +2,7 @@
   "news": "Actualités",
   "add_news": "Ajouter une actualité",
   "login": "Connexion",
+  "invalid_credentials": "Identifiants invalides",
   "headline": "À LA UNE",
   "add_announcement": "Ajouter une annonce",
   "announcement": "Annonce",
@@ -40,5 +41,10 @@
   "edit_news": "Modifier une actualité",
   "Choose the main image (Optional)": "Choisir l'image principale (facultatif)",
   "Choose the other images (Optional)": "Choisir les autres images (facultatif)",
-  "No file chosen": "Aucun fichier choisi"
+  "No file chosen": "Aucun fichier choisi",
+  "add_admin": "Ajouter un administrateur",
+  "name": "Nom",
+  "error_create_admin": "Erreur lors de la création de l'administrateur",
+  "upload_images": "Ajouter des images",
+  "uploading": "Envoi..."
 }

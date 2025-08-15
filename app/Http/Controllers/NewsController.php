@@ -63,7 +63,7 @@ class NewsController extends Controller
     // Show single news with images
     public function show($id)
     {
-        $news = News::with('images')->findOrFail($id);
+        $news = \App\Models\News::with('images')->findOrFail($id);
         return response()->json($news);
     }
 
