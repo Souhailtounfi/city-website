@@ -3,12 +3,16 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import NewsList from "./pages/NewsList";
 import NewsForm from "./pages/NewsForm";
 import Login from "./pages/Login";
+import Home from "./pages/Home";
 import Navbar from "./components/Navbar";
 import NewsDetail from "./pages/NewsDetail";
 import Footer from "./components/Footer";
 import CreateUser from "./pages/CreateUser";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import PresentationGenerale from "./pages/PresentationGenerale";
+import ApercuHistorique from "./pages/ApercuHistorique";
+import SituationGeographique from "./pages/SituationGeographique";
 
 function App() {
   const [lang, setLang] = useState("fr");
@@ -20,9 +24,28 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Home />} />
           <Route path="/news" element={<NewsList lang={lang} />} />
           <Route path="/news/:id" element={<NewsDetail lang={lang} />} />
-          <Route path="/users" element={<CreateUser />} />
+          {/* Admin Create Admin Route (protected) */}
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute adminOnly>
+                <CreateUser />
+              </ProtectedRoute>
+            }
+          />
+          {/* Presentation Générale section */}
+          <Route path="/presentation-generale" element={<PresentationGenerale />} />
+          <Route
+            path="/presentation-generale/apercu-historique"
+            element={<ApercuHistorique />}
+          />
+          <Route
+            path="/presentation-generale/situation-geographique"
+            element={<SituationGeographique />}
+          />
 
           {/* Admin Routes */}
           <Route
