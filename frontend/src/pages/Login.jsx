@@ -113,38 +113,16 @@ export default function Login() {
               >
                 {showPwd ? (
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.5 0-8.485-2.943-10-7  .614-1.674 1.72-3.162 3.167-4.317M6.223 6.223A9.956 9.956 0 0112 5c4.5 0 8.485 2.943 10 7-.424 1.156-1.032 2.227-1.788 3.162M9.88 9.88a3 3 0 104.24 4.24"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.5 0-8.485-2.943-10-7 .614-1.674 1.72-3.162 3.167-4.317M6.223 6.223A9.956 9.956 0 0112 5c4.5 0 8.485 2.943 10 7-.424 1.156-1.032 2.227-1.788 3.162M9.88 9.88a3 3 0 104.24 4.24" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
                   </svg>
                 ) : (
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12z"
-                    />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
                 )}
               </button>
-              <IconHint side={dir === "rtl" ? "right" : "left"}>
-                <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 11c1.105 0 2-.672 2-1.5S13.105 8 12 8s-2 .672-2 1.5S10.895 11 12 11z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 11v4m9-3c0 7-9 10-9 10S3 19 3 12a9 9 0 0118 0z"
-                  />
-                </svg>
-              </IconHint>
             </FieldShell>
 
             {error && (

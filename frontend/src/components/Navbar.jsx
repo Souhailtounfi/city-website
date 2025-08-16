@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/logo.png";
@@ -11,7 +11,8 @@ export default function FuturisticNavbar() {
   const dir = i18n.dir(lang);
   const { user, logout } = useAuth();
   const location = useLocation();
-
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState(null);
   const [scrolled, setScrolled] = useState(false);
@@ -153,6 +154,25 @@ export default function FuturisticNavbar() {
     }, 150);
   };
 
+  useEffect(() => {
+    // Keep input synced only when landing / refreshing on /news
+    if (location.pathname.startsWith("/news")) {
+      const p = new URLSearchParams(location.search);
+      setSearchTerm(p.get("search") || "");
+    }
+  }, [location.pathname, location.search]);
+
+  const submitSearch = (e) => {
+    e.preventDefault();
+    const term = searchTerm.trim();
+    const params = new URLSearchParams();
+    if (term) params.set("search", term);
+    const qs = params.toString();
+    // Navigate only on Enter / submit
+    navigate({ pathname: "/news", search: qs });
+    setOpenGroup(null);
+  };
+
   const compact = !!user?.is_admin;
 
   return (
@@ -175,83 +195,300 @@ export default function FuturisticNavbar() {
         .brand-wrapper{display:flex;align-items:center;gap:.45rem;margin-left:-4px;}
         .brand-wrapper img{height:44px;width:auto;}
         .brand-name{font-size:clamp(.9rem,1.05vw,1.15rem);font-weight:800;color:#fff;white-space:nowrap;}
-        .center-nav-wrapper{flex:1;display:flex;justify-content:center; /* center titles */ }
+        .center-nav-wrapper{flex:1;display:flex;justify-content:center;}
         .center-nav-inner{display:flex;flex-wrap:nowrap;gap:.55rem;position:relative;overflow:visible;}
         .center-nav-inner::-webkit-scrollbar{display:none;}
         .group-wrapper{position:relative;flex:0 0 auto;}
         .group-pill{
-          --grad:linear-gradient(135deg,#065f46,#059669 55%,#10b981);
-          width:var(--gp-width);height:var(--gp-height);
-          padding:0 .65rem;border-radius:.95rem;
-          display:flex;align-items:center;justify-content:center;
-          font-size:var(--gp-font);font-weight:700;letter-spacing:.05em;
-          text-transform:uppercase;color:#fff;background:var(--grad);
-          border:1px solid #0fae7c66;cursor:pointer;
-          transition:filter .25s, box-shadow .25s;
+          width:var(--gp-width);height:var(--gp-height);padding:0 .75rem;border-radius:1rem;
+          display:flex;align-items:center;justify-content:center;font-size:var(--gp-font);font-weight:700;letter-spacing:.05em;
+          text-transform:uppercase;color:#fff;background:rgba(255,255,255,.14);backdrop-filter:blur(10px) saturate(160%);
+          -webkit-backdrop-filter:blur(10px) saturate(160%);border:1px solid rgba(255,255,255,.32);cursor:pointer;
+          transition:background .28s, box-shadow .28s, border-color .28s, color .28s;
         }
-        .group-pill:hover{filter:brightness(1.07);box-shadow:0 4px 14px -6px rgba(16,185,129,.45);}
-        .group-pill.active{box-shadow:0 0 0 1px #10b981aa,0 6px 18px -10px rgba(15,174,124,.5);}
-        .group-pill.open{box-shadow:0 0 0 2px rgba(255,255,255,.35),0 10px 26px -12px rgba(15,174,124,.55);filter:brightness(1.09);}
-        .group-pill .gp-icon{width:12px;height:12px;margin-inline-start:.35rem;transition:.35s;}
+        .group-pill:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.55);box-shadow:0 4px 14px -6px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.15);}
+        .group-pill.active,.group-pill.open{
+          background:linear-gradient(135deg,rgba(16,185,129,.55),rgba(5,150,105,.55)),rgba(255,255,255,.18);
+          border-color:rgba(255,255,255,.65);box-shadow:0 0 0 1px rgba(255,255,255,.35),0 6px 22px -10px rgba(0,0,0,.55);
+        }
+        .group-pill .gp-icon{width:12px;height:12px;margin-inline-start:.4rem;transition:.35s;opacity:.95;}
         .group-pill.open .gp-icon{transform:rotate(180deg);}
         .group-menu{
-          position:absolute;top:100%;${dir==="rtl"?"right:0;":"left:0;"}margin-top:.45rem;
-          width:280px;padding:.55rem .6rem .7rem;
-          background:#fffffffc;backdrop-filter:blur(12px);
-          border:1px solid #10b98133;border-radius:.85rem;
-          box-shadow:0 18px 38px -16px rgba(0,0,0,.28);
+          position:absolute;top:100%;${dir==="rtl"?"right:0;":"left:0;"}margin-top:.45rem;width:280px;padding:.55rem .6rem .7rem;
+          background:rgba(255,255,255,.6);backdrop-filter:blur(18px) saturate(170%);-webkit-backdrop-filter:blur(18px) saturate(170%);
+          border:1px solid rgba(16,185,129,.35);border-radius:.95rem;box-shadow:0 18px 38px -16px rgba(0,0,0,.28);
           animation:ddIn .18s ease;z-index:4000;
         }
         @keyframes ddIn{0%{opacity:0;transform:translateY(6px) scale(.97);}100%{opacity:1;transform:translateY(0) scale(1);}}
-        .group-menu:before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#065f46,#10b981);}
         .group-menu a{display:block;font-size:.72rem;font-weight:500;padding:.48rem .55rem;border-radius:.6rem;color:#1f2937;text-decoration:none;transition:.18s;}
         .group-menu a:hover{background:#ecfdf5;color:#065f46;}
         .group-menu a.active{background:#10b981;color:#fff;font-weight:600;box-shadow:0 3px 10px -5px rgba(4,120,87,.45);}
         .nav-btn{
-          height:var(--gp-height);padding:0 .9rem;border-radius:1rem;
-          display:inline-flex;align-items:center;justify-content:center;
-          font-size:calc(var(--gp-font) + .06rem);font-weight:600;
-          color:#ffffffcc;text-decoration:none;white-space:nowrap;transition:.22s;
+          height:var(--gp-height);padding:0 .9rem;border-radius:1rem;display:inline-flex;align-items:center;justify-content:center;
+          font-size:calc(var(--gp-font) + .06rem);font-weight:600;color:#ffffffcc;text-decoration:none;white-space:nowrap;transition:.22s;
+          background:rgba(255,255,255,.12);backdrop-filter:blur(8px) saturate(140%);border:1px solid rgba(255,255,255,.25);
         }
-        .nav-btn:hover{background:rgba(255,255,255,.15);color:#fff;}
+        .nav-btn:hover{background:rgba(255,255,255,.22);color:#fff;}
         .nav-btn-active{background:#fff;color:#065f46!important;box-shadow:0 4px 14px -8px rgba(0,0,0,.25);}
-        .admin-create-btn{
-          height:var(--gp-height);padding:0 1.15rem;border-radius:1rem;
-          font-size:calc(var(--gp-font) - .02rem);font-weight:700;letter-spacing:.08em;
-          background:linear-gradient(120deg,#6366f1,#3b82f6 40%,#0ea5e9 70%,#10b981);
-          background-size:170% 100%;color:#fff;border:1px solid rgba(255,255,255,.25);
-          display:inline-flex;align-items:center;justify-content:center;transition:.55s;white-space:nowrap;
+        /* Login / Connexion special color */
+        .nav-btn.login-btn{
+          background:linear-gradient(135deg,#f59e0b,#d97706 55%,#b45309);
+          color:#fff;
+          border:1px solid rgba(255,255,255,.4);
+          position:relative;
+          overflow:hidden;
         }
-        .admin-create-btn:hover{background-position:100% 0;filter:brightness(1.05);}
-        .admin-create-btn.is-active{box-shadow:0 0 0 2px rgba(255,255,255,.4);}
-        .lang-switch-wrapper{display:flex;align-items:center;justify-content:flex-end;min-width:120px;}
+        .nav-btn.login-btn:before{
+          content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.35),transparent 70%);
+          opacity:.35;mix-blend-mode:overlay;pointer-events:none;
+        }
+        .nav-btn.login-btn:hover{filter:brightness(1.08);}
+        .nav-btn.login-btn.nav-btn-active{
+          background:linear-gradient(135deg,#fbbf24,#f59e0b 55%,#d97706);
+          color:#fff!important;
+          box-shadow:0 4px 16px -6px rgba(245,158,11,.55);
+        }
+        /* Language switch smoother animation */
+        .lang-switch-wrapper{display:flex;align-items:center;justify-content:flex-end;min-width:150px;}
         .lang-switch{
-          display:flex;align-items:center;gap:.35rem;
+          position:relative;
+          display:flex;align-items:center;gap:.4rem;padding:.35rem .45rem;
           background:rgba(255,255,255,.18);
           border:1px solid rgba(255,255,255,.35);
-          padding:.3rem .4rem;
           border-radius:2rem;
-          backdrop-filter:blur(6px);
+          backdrop-filter:blur(10px) saturate(160%);
+          -webkit-backdrop-filter:blur(10px) saturate(160%);
+          transition:background .4s,border-color .4s, box-shadow .5s;
+          overflow:hidden;
         }
+        .lang-switch:before{
+          content:"";position:absolute;inset:0;
+          background:linear-gradient(120deg,rgba(255,255,255,.25),rgba(255,255,255,0) 60%);
+          opacity:0;transition:opacity .6s;
+        }
+        .lang-switch:hover:before{opacity:1;}
         .lang-switch button{
+          position:relative;
           font-size:calc(var(--gp-font) - .04rem);
-          font-weight:700;
-          letter-spacing:.07em;
-          padding:.45rem .75rem;
-          line-height:1;
-          border-radius:999px;
+          font-weight:700;letter-spacing:.07em;
+          padding:.45rem .85rem;
+          line-height:1;border-radius:999px;
           color:#fff;
-          transition:.25s;
+          background:transparent;
+          transition:background .45s, color .45s, transform .45s, box-shadow .5s;
         }
-        .lang-switch button.active{background:#fff;color:#065f46;box-shadow:0 0 0 1px #fff;}
-        @media (max-width:1250px){
-          .center-nav-wrapper{justify-content:flex-start;}
+        .lang-switch button:not(.active):hover{background:rgba(255,255,255,.15);transform:translateY(-2px);}
+        .lang-switch button.active{
+          background:#ffffff;
+          color:#065f46;
+          box-shadow:0 4px 14px -6px rgba(0,0,0,.35),0 0 0 1px #fff;
+          transform:translateY(-1px);
         }
+        .lang-switch button:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+        /* Animated sliding highlight */
+        .lang-switch .slider{
+          position:absolute;top:4px;bottom:4px;
+          width:calc(50% - .5rem);
+          background:linear-gradient(135deg,#ffffff,#d1fae5);
+          border-radius:999px;
+          z-index:0;
+          transition:transform .5s cubic-bezier(.65,.05,.36,1), opacity .4s;
+          box-shadow:0 4px 14px -6px rgba(0,0,0,.3);
+          opacity:.18;
+        }
+        .lang-switch[data-active="fr"] .slider{transform:translateX(${dir==="rtl"?"100%":"0%"});}
+        .lang-switch[data-active="ar"] .slider{transform:translateX(${dir==="rtl"?"0%":"100%"});}
+        .lang-switch button{z-index:1;}
+        @media (max-width:1250px){.center-nav-wrapper{justify-content:flex-start;}}
         @media (max-width:1023px){
           .center-nav-wrapper{display:none;}
           .lang-switch-wrapper{display:none;}
         }
         @media (min-width:1024px){.mobile-area{display:none;}}
+        .search-wrapper{
+          display:flex;
+          align-items:center;
+          background:rgba(255,255,255,.18);
+          border:1px solid rgba(255,255,255,.35);
+          padding:.28rem .55rem .28rem .7rem;
+          gap:.45rem;
+          border-radius:2rem;
+          backdrop-filter:blur(10px) saturate(160%);
+          -webkit-backdrop-filter:blur(10px) saturate(160%);
+          min-width:220px;
+          transition:background .3s,border-color .3s, box-shadow .35s;
+        }
+        .search-wrapper:focus-within{
+          background:rgba(255,255,255,.28);
+          border-color:rgba(255,255,255,.6);
+          box-shadow:0 4px 18px -8px rgba(0,0,0,.4);
+        }
+        .search-wrapper input{
+          background:transparent;
+          border:none;
+          outline:none;
+          font-size:.7rem;
+          color:#fff;
+          width:100%;
+        }
+        .search-wrapper input::placeholder{color:rgba(255,255,255,.65);}
+        .search-btn{
+          display:inline-flex;
+          align-items:center;
+          gap:.35rem;
+          background:#10b981;
+          color:#fff;
+          font-size:.6rem;
+          font-weight:700;
+          letter-spacing:.05em;
+          border:none;
+          cursor:pointer;
+          padding:.48rem .85rem;
+          border-radius:1.4rem;
+          transition:filter .25s, transform .25s;
+        }
+        .search-btn:hover{filter:brightness(1.08);transform:translateY(-2px);}
+        .search-btn svg{width:14px;height:14px;}
+        @media (max-width:1180px){
+          .search-wrapper{min-width:180px;}
+          .search-wrapper input{font-size:.65rem;}
+          .search-btn{padding:.42rem .7rem;}
+        }
+        @media (max-width:1023px){
+          .search-wrapper{display:none;}
+        }
+
+        /* REPLACED old .search-wrapper with news-list style variant */
+        .nav-search{
+          position:relative;
+          display:flex;
+          align-items:center;
+          width:250px;
+        }
+        .nav-search input{
+          width:100%;
+          border:1px solid #10b98133;
+          background:linear-gradient(110deg,#ffffffcc,#f0fdf480);
+          backdrop-filter:blur(10px);
+          border-radius:1.4rem;
+          padding:.70rem 2.6rem .70rem 1.05rem;
+          font-size:.7rem;
+          font-weight:500;
+          color:#065f46;
+          outline:none;
+          transition:.35s;
+        }
+        .nav-search input:focus{
+          box-shadow:0 0 0 3px #10b98133;
+          border-color:#10b98166;
+        }
+        .nav-search .icon{
+          position:absolute;
+          right:.85rem;
+          width:1rem;height:1rem;
+          color:#10b981;
+          opacity:.8;
+          pointer-events:none;
+        }
+        [dir="rtl"] .nav-search input{
+          padding:.70rem 1.05rem .70rem 2.6rem;
+        }
+        [dir="rtl"] .nav-search .icon{
+          right:auto;left:.85rem;
+        }
+        @media (max-width:1180px){
+          .nav-search{width:210px;}
+          .nav-search input{font-size:.65rem;}
+        }
+        @media (max-width:1023px){
+          .nav-search{display:none;}
+        }
+
+        /* Updated admin (create) button: solid blue */
+        .admin-create-btn{
+          height:var(--gp-height);
+          padding:0 1.1rem;
+          border-radius:1rem;
+          font-size:calc(var(--gp-font) - .02rem);
+          font-weight:700;
+          letter-spacing:.07em;
+          background:#2563eb; /* blue */
+          color:#fff;
+          border:1px solid rgba(255,255,255,.35);
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          gap:.45rem;
+          transition:.3s;
+          box-shadow:0 4px 14px -6px rgba(37,99,235,.45);
+        }
+        .admin-create-btn:hover{
+          background:#1d4ed8;
+          box-shadow:0 6px 18px -6px rgba(29,78,216,.55);
+        }
+        .admin-create-btn.is-active{
+          box-shadow:0 0 0 2px rgba(255,255,255,.45),0 6px 20px -8px rgba(29,78,216,.65);
+        }
+
+        /* Logout (déconnexion) red button with icon */
+        .logout-btn{
+          background:#dc2626 !important;
+          border:1px solid rgba(255,255,255,.35);
+          color:#fff !important;
+          display:inline-flex;
+          align-items:center;
+          gap:.45rem;
+          font-weight:600;
+          padding:0 1rem;
+          position:relative;
+          overflow:hidden;
+        }
+        .logout-btn:hover{
+          background:#b91c1c !important;
+        }
+        .logout-btn svg{
+          width:15px;
+          height:15px;
+          stroke:currentColor;
+        }
+
+        /* Mobile variants reuse same classes */
+        @media (max-width:1023px){
+          .admin-create-btn,.logout-btn{
+            height:40px;
+            padding:0 .9rem;
+            border-radius:1rem;
+            font-size:.55rem;
+            font-weight:600;
+            letter-spacing:.05em;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:.35rem;
+            transition:.3s;
+          }
+          .admin-create-btn{
+            background:#2563eb;
+            color:#fff;
+            border:1px solid rgba(255,255,255,.35);
+            box-shadow:0 4px 14px -6px rgba(37,99,235,.45);
+          }
+          .admin-create-btn:hover{
+            background:#1d4ed8;
+            box-shadow:0 6px 18px -6px rgba(29,78,216,.55);
+          }
+          .admin-create-btn.is-active{
+            box-shadow:0 0 0 2px rgba(255,255,255,.45),0 6px 20px -8px rgba(29,78,216,.65);
+          }
+          .logout-btn{
+            background:#dc2626;
+            color:#fff;
+            border:1px solid rgba(255,255,255,.35);
+          }
+          .logout-btn:hover{
+            background:#b91c1c;
+          }
+        }
       `}</style>
 
       <div ref={fixedWrapRef} className="fixed top-0 inset-x-0 z-50" dir={dir}>
@@ -321,12 +558,15 @@ export default function FuturisticNavbar() {
                       </div>
                     );
                   })}
-
                   {singles.map(s => (
                     <NavLink
                       key={s.to}
                       to={s.to}
-                      className={({ isActive }) => `nav-btn ${isActive ? "nav-btn-active" : ""}`}
+                      className={({ isActive }) =>
+                        `nav-btn ${s.to==="/login"?"login-btn":""} ${
+                          s.to==="/login" && isActive ? "login-btn-active" : isActive ? "nav-btn-active" : ""
+                        }`
+                      }
                     >
                       {s.label}
                     </NavLink>
@@ -337,6 +577,9 @@ export default function FuturisticNavbar() {
                       to="/users"
                       className={({ isActive }) => `admin-create-btn ${isActive ? "is-active" : ""}`}
                     >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M4 12h16"/>
+                      </svg>
                       {lang.startsWith("ar") ? "إنشاء مدير" : "Créer Admin"}
                     </NavLink>
                   )}
@@ -344,29 +587,63 @@ export default function FuturisticNavbar() {
                   {user && (
                     <button
                       onClick={logout}
-                      className="nav-btn bg-red-500 hover:bg-red-600 text-white"
+                      className="nav-btn logout-btn"
                     >
+                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 8l-4 4 4 4"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 4v16"/>
+                      </svg>
                       {lang.startsWith("ar") ? "تسجيل الخروج" : t("logout")}
                     </button>
                   )}
                 </div>
               </div>
 
+              {/* Search bar (desktop) - SUBMIT ONLY */}
+              <form onSubmit={submitSearch} className="nav-search">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  onKeyDown={e=>{
+                    if(e.key==="Escape"){
+                      setSearchTerm("");
+                      // Optional: if already on news clear results immediately
+                      if (location.pathname.startsWith("/news")) {
+                        navigate("/news", { replace:true });
+                      }
+                    }
+                  }}
+                  placeholder={lang.startsWith("ar") ? "بحث في العناوين والمحتوى..." : "Rechercher titres & contenu..."}
+                  aria-label={lang.startsWith("ar") ? "بحث" : "Search news"}
+                />
+                <svg
+                  viewBox="0 0 24 24"
+                  className="icon"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M21 21l-4.35-4.35" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </form>
+
               {/* Right language switch */}
               <div className="lang-switch-wrapper">
-                <div className="lang-switch">
+                <div className="lang-switch" data-active={lang.startsWith("ar")?"ar":"fr"}>
+                  <span className="slider" aria-hidden="true"></span>
                   <button
                     className={lang === "fr" ? "active" : ""}
                     onClick={() => handleLangSwitch("fr")}
-                  >
-                    FR
-                  </button>
+                    type="button"
+                  >FR</button>
                   <button
                     className={lang === "ar" ? "active" : ""}
                     onClick={() => handleLangSwitch("ar")}
-                  >
-                    AR
-                  </button>
+                    type="button"
+                  >AR</button>
                 </div>
               </div>
 
@@ -450,19 +727,27 @@ export default function FuturisticNavbar() {
                         to="/users"
                         onClick={() => setMobileOpen(false)}
                         className={({ isActive }) =>
-                          `flex-1 min-w-[120px] text-center px-3 py-3 rounded-2xl text-sm font-semibold admin-create-btn ${
+                          `flex-1 min-w-[120px] px-3 py-3 rounded-2xl text-sm font-semibold admin-create-btn ${
                             isActive ? "is-active" : ""
                           }`
                         }
                       >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M4 12h16"/>
+                        </svg>
                         {lang.startsWith("ar") ? "إنشاء مدير" : "Créer Admin"}
                       </NavLink>
                     )}
                     {user && (
                       <button
                         onClick={() => { logout(); setMobileOpen(false); }}
-                        className="flex-1 min-w-[120px] px-3 py-3 rounded-2xl text-sm font-semibold bg-red-500 hover:bg-red-600 text-white"
+                        className="flex-1 min-w-[120px] px-3 py-3 rounded-2xl text-sm font-semibold logout-btn"
                       >
+                        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 8l-4 4 4 4"/>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 4v16"/>
+                        </svg>
                         {lang.startsWith("ar") ? "تسجيل الخروج" : t("logout")}
                       </button>
                     )}

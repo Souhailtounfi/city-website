@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import api from "../services/api";
-import { Link } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuth } from "../context/AuthContext";
 
@@ -9,11 +9,22 @@ export default function NewsList() {
   const lang = i18n.language;
   const dir = lang === "ar" ? "rtl" : "ltr";
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const params = new URLSearchParams(location.search);
+  const search = (params.get("search") || "").trim();
+
+  // Input change updates URL immediately (no extra state)
+  const handleSearchChange = (v) => {
+    const p = new URLSearchParams(location.search);
+    if (v.trim()) p.set("search", v);
+    else p.delete("search");
+    navigate({ pathname: location.pathname, search: p.toString() }, { replace: true });
+  };
 
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
-  const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
 
   // Fetch news
@@ -41,23 +52,29 @@ export default function NewsList() {
       .replace(/\s+/g, " ")
       .trim();
 
-  // Derived filtered & sorted list
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    let list = news.filter((n) => {
-      if (!term) return true;
-      const fr = (n.title_fr || "").toLowerCase();
-      const ar = (n.title_ar || "").toLowerCase();
-      return fr.includes(term) || ar.includes(term);
-    });
-    list.sort((a, b) => {
-      const da = new Date(a.created_at || a.id);
-      const db = new Date(b.created_at || b.id);
-      if (sort === "newest") return db - da;
-      if (sort === "oldest") return da - db;
-      return 0;
-    });
-    return list;
+    const term = search.toLowerCase();
+    return news
+      .filter(n => {
+        if (!term) return true;
+        const frTitle = (n.title_fr || "").toLowerCase();
+        const arTitle = (n.title_ar || "").toLowerCase();
+        const frContent = plain(n.content_fr || "").toLowerCase();
+        const arContent = plain(n.content_ar || "").toLowerCase();
+        return (
+          frTitle.includes(term) ||
+          arTitle.includes(term) ||
+          frContent.includes(term) ||
+          arContent.includes(term)
+        );
+      })
+      .sort((a,b)=>{
+        const da = new Date(a.created_at || a.id);
+        const db = new Date(b.created_at || b.id);
+        if (sort === "newest") return db - da;
+        if (sort === "oldest") return da - db;
+        return 0;
+      });
   }, [news, search, sort]);
 
   const handleDelete = async (id) => {
@@ -118,8 +135,8 @@ export default function NewsList() {
             <div className="search-wrap">
               <input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t("search")}
+                onChange={(e)=>handleSearchChange(e.target.value)}
+                placeholder={lang === "ar" ? "بحث" : "Recherche"}
               />
               <svg
                 viewBox="0 0 24 24"
@@ -139,7 +156,7 @@ export default function NewsList() {
             {user?.is_admin && (
               <Link to="/news/new" className="add-btn">
                 <span className="plus">＋</span>
-                {t("add_announcement")}
+                {lang === "ar" ? "إضافة مقال" : "Ajouter Article"}
               </Link>
             )}
           </div>
