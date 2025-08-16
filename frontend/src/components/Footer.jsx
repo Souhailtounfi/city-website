@@ -24,34 +24,37 @@ const Footer = () => {
   ];
 
   return (
-    <footer dir={dir} className="relative mt-20">
+    <footer dir={dir} className="relative"> {/* plus de padding transparent */}
       <style>{`
+        /* Anti‑gap global */
+        footer, .site-footer { margin-top:0 !important; }
+
         .footer-bg {
           background:
             radial-gradient(circle at 18% 20%,rgba(16,185,129,0.25),transparent 60%),
             radial-gradient(circle at 82% 75%,rgba(5,150,105,0.22),transparent 55%),
             linear-gradient(135deg,#065f46,#047857,#059669);
         }
+        /* Alignement anti-collapsing */
+        .footer-bg { padding-top:5rem; } /* remplace l'ancien pt-20 */
         .footer-link-dot:before {
-          content:"";
-          width:6px;height:6px;
-          border-radius:50%;
-          background:linear-gradient(135deg,#34d399,#10b981);
-          display:inline-block;
-          margin-inline-end:.55rem;
-          transform:scale(.9);
-          transition:.3s;
+            content:"";
+            width:6px;height:6px;
+            border-radius:50%;
+            background:linear-gradient(135deg,#34d399,#10b981);
+            display:inline-block;
+            margin-inline-end:.55rem;
+            transform:scale(.9);
+            transition:.3s;
         }
         a.footer-link:hover .footer-link-dot:before { transform:scale(1.15); }
         .gradient-divider {
-          height:1px;
-          background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
+            height:1px;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
         }
       `}</style>
-
       <div className="footer-bg w-full">
         <div className="max-w-[1500px] mx-auto px-5 sm:px-8 pt-14 pb-10">
-          {/* Simplified: removed inner white/glass block */}
           <div className="relative grid gap-12 xl:gap-10 md:grid-cols-2 lg:grid-cols-4 text-white">
             <div className="space-y-5">
               <h2 className="text-2xl font-extrabold tracking-wide">El Hajeb</h2>
@@ -164,31 +167,31 @@ const Footer = () => {
 
           <div className="mt-12 mb-8 gradient-divider" />
 
-            <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between text-xs sm:text-sm text-green-100">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                <span>
-                  © {year} {lang === "ar"
-                    ? "عمالة إقليم الحاجب. جميع الحقوق محفوظة."
-                    : "Préfecture Province d'El Hajeb. Tous droits réservés."}
-                </span>
-                <a href="#" className="hover:text-white transition underline-offset-2 hover:underline">
-                  {lang === "ar" ? "سياسة الخصوصية" : "Politique de confidentialité"}
-                </a>
-                <a href="#" className="hover:text-white transition underline-offset-2 hover:underline">
-                  {lang === "ar" ? "شروط الاستخدام" : "Conditions d'utilisation"}
-                </a>
-              </div>
-              <div className="flex gap-4">
-                {["Facebook","Twitter","Instagram"].map(n=>(
-                  <a key={n} href="#" aria-label={n} className="relative group">
-                    <span className="absolute -inset-2 rounded-full bg-white/0 group-hover:bg-white/10 transition" />
-                    <div className="h-6 w-6 rounded-full bg-white/15 flex items-center justify-center text-green-50 text-[11px] font-bold group-hover:bg-white/25 transition">
-                      {n[0]}
-                    </div>
-                  </a>
-                ))}
-              </div>
+          <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between text-xs sm:text-sm text-green-100">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <span>
+                © {year} {lang === "ar"
+                  ? "عمالة إقليم الحاجب. جميع الحقوق محفوظة."
+                  : "Préfecture Province d'El Hajeb. Tous droits réservés."}
+              </span>
+              <a href="#" className="hover:text-white transition underline-offset-2 hover:underline">
+                {lang === "ar" ? "سياسة الخصوصية" : "Politique de confidentialité"}
+              </a>
+              <a href="#" className="hover:text-white transition underline-offset-2 hover:underline">
+                {lang === "ar" ? "شروط الاستخدام" : "Conditions d'utilisation"}
+              </a>
             </div>
+            <div className="flex gap-4">
+              {["Facebook","Twitter","Instagram"].map(n=>(
+                <a key={n} href="#" aria-label={n} className="relative group">
+                  <span className="absolute -inset-2 rounded-full bg-white/0 group-hover:bg-white/10 transition" />
+                  <div className="h-6 w-6 rounded-full bg-white/15 flex items-center justify-center text-green-50 text-[11px] font-bold group-hover:bg-white/25 transition">
+                    {n[0]}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </footer>
