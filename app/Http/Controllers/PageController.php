@@ -1,94 +1,115 @@
 <?php
 namespace App\Http\Controllers;
+
 use App\Models\Page;
+use App\Models\PageBlock;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
-class PageController extends Controller
-{
-  public function index() {
-    return Page::select('slug','title_fr','title_ar','updated_at')->orderBy('slug')->get();
-  }
+class PageController extends Controller {
 
-  public function show(string $slug) {
-    $page = Page::where('slug',$slug)->first();
-    if(!$page){
-      return response()->json(['message'=>'Not Found'],404);
+    public function index() {
+        return Page::select('slug','title_fr','title_ar','updated_at')->orderBy('slug')->get();
     }
-    $extra = $page->extra ?? [];
-    if(isset($extra['gallery']) && is_array($extra['gallery'])){
-      $extra['gallery_full'] = array_map(fn($p)=>Storage::url($p), $extra['gallery']);
+
+    public function show(string $slug) {
+        $page = Page::whereSlug($slug)->with('blocks')->firstOrFail();
+        return response()->json($page);
     }
-    $page->extra = $extra;
-    return $page;
-  }
 
-  public function store(Request $request) {
-    $this->authorizeAdmin($request);
-    $data = $request->validate([
-      'slug'       => 'required|string|alpha_dash|unique:pages,slug',
-      'title_fr'   => 'nullable|string|max:255',
-      'title_ar'   => 'nullable|string|max:255',
-      'content_fr' => 'nullable|string',
-      'content_ar' => 'nullable|string',
-      'extra'      => 'nullable|array'
-    ]);
-    $page = Page::create($data);
-    return response()->json($page,201);
-  }
+    // Upsert principal (POST /pages/{slug})
+    public function upsert(Request $request, string $slug) {
+        $this->authorizeAdmin($request);
 
-  public function update(Request $request, string $slug) {
-    $this->authorizeAdmin($request);
-    $page = Page::where('slug',$slug)->firstOrFail();
-    $data = $request->validate([
-      'title_fr'   => 'nullable|string|max:255',
-      'title_ar'   => 'nullable|string|max:255',
-      'content_fr' => 'nullable|string',
-      'content_ar' => 'nullable|string',
-      'extra'      => 'nullable|array'
-    ]);
-    $page->update($data);
-    return $page->fresh();
-  }
+        $data = $request->validate([
+            'title_fr' => 'nullable|string|max:255',
+            'title_ar' => 'nullable|string|max:255',
+            'blocks'   => 'array',
+            'blocks.*.type' => ['required', Rule::in(['heading','text','image','gallery','map'])],
+            'blocks.*.text_fr' => 'nullable|string',
+            'blocks.*.text_ar' => 'nullable|string',
+            'blocks.*.image_path' => 'nullable|string',
+            'blocks.*.alt_fr' => 'nullable|string|max:255',
+            'blocks.*.alt_ar' => 'nullable|string|max:255',
+            'blocks.*.gallery' => 'nullable|array',
+            'blocks.*.gallery.*' => 'string',
+            'blocks.*.map_url' => 'nullable|string',
+            'blocks.*.meta' => 'nullable|array'
+        ]);
 
-  public function addGalleryImage(Request $request, string $slug) {
-    $this->authorizeAdmin($request);
-    $page = Page::where('slug',$slug)->firstOrFail();
-    $request->validate([
-      'image' => 'required|image|max:4096'
-    ]);
-    $path = $request->file('image')->store('page_galleries','public');
+        try {
+            $page = DB::transaction(function () use ($slug, $data) {
+                $page = Page::updateOrCreate(['slug'=>$slug], [
+                    'title_fr' => $data['title_fr'] ?? null,
+                    'title_ar' => $data['title_ar'] ?? null
+                ]);
 
-    $extra = $page->extra ?? [];
-    $gallery = $extra['gallery'] ?? [];
-    $gallery[] = $path;
-    $extra['gallery'] = $gallery;
-    $page->extra = $extra;
-    $page->save();
+                $page->blocks()->delete();
 
-    return response()->json(['gallery'=>$gallery]);
-  }
+                $pos = 1;
+                foreach (($data['blocks'] ?? []) as $b) {
+                    // Sanitize map_url (extract src if iframe pasted)
+                    if (($b['type'] ?? null) === 'map' && !empty($b['map_url'])) {
+                        $b['map_url'] = $this->extractMapSrc($b['map_url']);
+                    }
+                    PageBlock::create([
+                        'page_id'    => $page->id,
+                        'position'   => $pos++,
+                        'type'       => $b['type'],
+                        'text_fr'    => $b['text_fr'] ?? null,
+                        'text_ar'    => $b['text_ar'] ?? null,
+                        'image_path' => $b['image_path'] ?? null,
+                        'alt_fr'     => $b['alt_fr'] ?? null,
+                        'alt_ar'     => $b['alt_ar'] ?? null,
+                        'gallery'    => $b['gallery'] ?? null,
+                        'map_url'    => $b['map_url'] ?? null,
+                        'meta'       => $b['meta'] ?? null,
+                    ]);
+                }
 
-  public function deleteGalleryImage(Request $request, string $slug, int $index) {
-    $this->authorizeAdmin($request);
-    $page = Page::where('slug',$slug)->firstOrFail();
-    $extra = $page->extra ?? [];
-    $gallery = $extra['gallery'] ?? [];
-    if (!isset($gallery[$index])) {
-      return response()->json(['message'=>'Not Found'],404);
+                return $page->load('blocks');
+            });
+
+            return response()->json($page);
+        } catch (\Throwable $e) {
+            Log::error('Page upsert failed', ['slug'=>$slug,'err'=>$e->getMessage()]);
+            return response()->json([
+                'message'=>'save_failed',
+                'error'=>$e->getMessage()
+            ], 422);
+        }
     }
-    $removed = $gallery[$index];
-    unset($gallery[$index]);
-    $gallery = array_values($gallery);
-    $extra['gallery'] = $gallery;
-    $page->extra = $extra;
-    $page->save();
-    // (Optionnel) Storage::disk('public')->delete($removed);
-    return response()->json(['gallery'=>$gallery]);
-  }
 
-  private function authorizeAdmin(Request $r){
-    $u = $r->user();
-    abort_unless($u && $u->is_admin, 403);
-  }
+    private function extractMapSrc(string $raw): string {
+        // If raw contains an iframe tag, extract src=""
+        if (stripos($raw, '<iframe') !== false) {
+            if (preg_match('/src=["\']([^"\']+)["\']/i', $raw, $m)) {
+                return $m[1];
+            }
+        }
+        // Trim attributes accidentally appended
+        $parts = preg_split('/\s+(width|height|style|allowfullscreen|loading|referrerpolicy)=/i', $raw);
+        return trim($parts[0]);
+    }
+
+    // Upload d’un asset image (utilisé par l’éditeur)
+    public function uploadAsset(Request $request) {
+        $this->authorizeAdmin($request);
+        $request->validate([
+            'file'=>'required|file|image|max:4096'
+        ]);
+        $path = $request->file('file')->store('page-blocks','public');
+        // For DB we keep relative path "page-blocks/xxx"
+        return response()->json([
+            'path'=>$path,
+            'url'=>asset('storage/'.$path)
+        ]);
+    }
+
+    private function authorizeAdmin(Request $r){
+        $u = $r->user();
+        abort_unless($u && $u->is_admin, 403, 'forbidden');
+    }
 }

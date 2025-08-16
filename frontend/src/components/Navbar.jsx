@@ -8,7 +8,33 @@ import NavNewsTicker from "./NavNewsTicker";
 export default function FuturisticNavbar() {
   const { i18n, t } = useTranslation();
   const lang = i18n.language;
-  const dir = i18n.dir(lang);
+  const dir  = i18n.dir(lang);
+
+  // INIT language from localStorage (runs once)
+  useEffect(()=>{
+    const saved = localStorage.getItem("lang");
+    if(saved && saved !== i18n.language){
+      i18n.changeLanguage(saved);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
+  // Sync document direction whenever language changes
+  useEffect(()=>{
+    document.documentElement.lang = lang;
+    document.documentElement.dir  = dir;
+  },[lang, dir]);
+
+  // Language switch handler (desktop + mobile)
+  const handleLangSwitch = useCallback((next)=>{
+    if(next === i18n.language) return;
+    i18n.changeLanguage(next);
+    localStorage.setItem("lang", next);
+    document.documentElement.dir = i18n.dir(next);
+    setMobileOpen(false);          // close mobile menu after switch
+    setOpenGroup(null);
+  },[i18n]);
+
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -20,8 +46,10 @@ export default function FuturisticNavbar() {
 
   const fixedWrapRef = useRef(null);
   const desktopNavRef = useRef(null);
+  const mobileMenuRef = useRef(null);              // ADDED
   const hoverTimer = useRef(null);
   const leaveTimer = useRef(null);
+  const [mobileHeight,setMobileHeight]=useState(0); // ADDED
 
   const buildGroups = useCallback(() => {
     const isAr = lang.startsWith("ar");
@@ -121,8 +149,10 @@ export default function FuturisticNavbar() {
     };
   }, [recalcSpacer]);
 
+  // FIX: clickOutside only for desktop (was closing mobile accordions accidentally)
   useEffect(() => {
     const clickOutside = e => {
+      if (window.innerWidth < 1024) return; // ADDED GUARD
       if (!desktopNavRef.current) return;
       if (!desktopNavRef.current.contains(e.target)) setOpenGroup(null);
     };
@@ -134,24 +164,31 @@ export default function FuturisticNavbar() {
     };
   }, []);
 
-  const handleLangSwitch = async (lng) => {
-    if (lng === lang) return;
-    await i18n.changeLanguage(lng);
-    localStorage.setItem("lang", lng);
-    setOpenGroup(null);
-  };
+  // BODY SCROLL LOCK when mobile menu open
+  useEffect(()=>{
+    if(mobileOpen){
+      const prev = document.body.style.overflow;
+      document.body.style.overflow='hidden';
+      return ()=>{ document.body.style.overflow=prev; };
+    }
+  },[mobileOpen]);
 
-  const handleEnter = (key) => {
-    if (window.innerWidth < 1024) return;
-    if (leaveTimer.current) clearTimeout(leaveTimer.current);
-    hoverTimer.current = setTimeout(() => setOpenGroup(key), 110);
-  };
-  const handleLeave = (key) => {
-    if (window.innerWidth < 1024) return;
-    if (hoverTimer.current) clearTimeout(hoverTimer.current);
-    leaveTimer.current = setTimeout(() => {
-      setOpenGroup(k => (k === key ? null : k));
-    }, 150);
+  // Dynamic mobile menu height for smooth expand (instead of fixed 82vh)
+  useEffect(()=>{
+    if(mobileOpen){
+      requestAnimationFrame(()=>{
+        if(mobileMenuRef.current){
+          setMobileHeight(mobileMenuRef.current.scrollHeight);
+        }
+      });
+    } else {
+      setMobileHeight(0);
+    }
+  },[mobileOpen, openGroup, lang]);
+
+  // Normalize accordion toggle (prevent rapid double-close)
+  const toggleGroupMobile = (key)=>{
+    setOpenGroup(g=> g===key ? null : key);
   };
 
   useEffect(() => {
@@ -489,6 +526,23 @@ export default function FuturisticNavbar() {
             background:#b91c1c;
           }
         }
+
+        /* MOBILE MENU REVISED */
+        .mobile-menu-transition{
+          overflow:hidden;
+          transition:max-height .45s cubic-bezier(.4,0,.2,1), opacity .35s;
+        }
+        .mobile-menu-panel{
+          background:#ffffffF2;
+          backdrop-filter:blur(14px) saturate(160%);
+          -webkit-backdrop-filter:blur(14px) saturate(160%);
+          border:1px solid #10b98133;
+          border-radius:1.4rem;
+          box-shadow:0 8px 28px -10px rgba(0,0,0,.25);
+        }
+        @media (min-width:1024px){
+          .mobile-menu-transition{display:none;}
+        }
       `}</style>
 
       <div ref={fixedWrapRef} className="fixed top-0 inset-x-0 z-50" dir={dir}>
@@ -630,21 +684,28 @@ export default function FuturisticNavbar() {
                 </svg>
               </form>
 
-              {/* Right language switch */}
-              <div className="lang-switch-wrapper">
-                <div className="lang-switch" data-active={lang.startsWith("ar")?"ar":"fr"}>
-                  <span className="slider" aria-hidden="true"></span>
-                  <button
-                    className={lang === "fr" ? "active" : ""}
-                    onClick={() => handleLangSwitch("fr")}
-                    type="button"
-                  >FR</button>
-                  <button
-                    className={lang === "ar" ? "active" : ""}
-                    onClick={() => handleLangSwitch("ar")}
-                    type="button"
-                  >AR</button>
-                </div>
+              {/* Desktop language switch */}
+              <div className="hidden lg:flex items-center gap-2 ms-auto pe-2">
+                <button
+                  type="button"
+                  onClick={()=>handleLangSwitch('fr')}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide ${
+                    lang==='fr'
+                      ? 'bg-green-600 text-white shadow'
+                      : 'bg-green-100 text-green-800 hover:bg-green-200'
+                  }`}
+                  aria-pressed={lang==='fr'}
+                >FR</button>
+                <button
+                  type="button"
+                  onClick={()=>handleLangSwitch('ar')}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wide ${
+                    lang==='ar'
+                      ? 'bg-green-600 text-white shadow'
+                      : 'bg-green-100 text-green-800 hover:bg-green-200'
+                  }`}
+                  aria-pressed={lang==='ar'}
+                >AR</button>
               </div>
 
               {/* Mobile toggle (shown only <1024px) */}
@@ -653,6 +714,7 @@ export default function FuturisticNavbar() {
                 className="mobile-area nav-btn h-10 w-10 bg-white/90 text-green-700 hover:bg-white shadow ml-auto"
                 aria-label="Menu"
                 aria-expanded={mobileOpen}
+                aria-controls="mobileNavPanel"                     // ADDED
               >
                 {mobileOpen ? (
                   <svg className="w-5 h-5" fill="none" strokeWidth="2" stroke="currentColor" viewBox="0 0 24 24">
@@ -666,113 +728,132 @@ export default function FuturisticNavbar() {
               </button>
             </div>
 
-            {/* Mobile menu */}
-            <div className={`mobile-area overflow-hidden transition-[max-height] duration-400 ${mobileOpen ? "max-h-[82vh] mb-3" : "max-h-0"}`}>
-              {mobileOpen && (
-                <div className="rounded-2xl p-4 grid gap-4 bg-white/95 backdrop-blur shadow border border-green-100">
-                  {groups.map(g => {
-                    const open = openGroup === g.key;
-                    return (
-                      <div key={g.key} className="rounded-2xl border border-green-200 overflow-hidden">
-                        <button
-                          onClick={() => setOpenGroup(open ? null : g.key)}
-                          className={`w-full text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide ${
-                            open ? "bg-green-600 text-white" : "text-green-800 bg-green-50"
-                          }`}
-                        >
-                          {g.label}
-                        </button>
-                        <div className={`grid transition-all ${open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
-                          <ul className="overflow-hidden flex flex-col gap-1 pb-3 pt-2 px-3">
-                            {g.items.map(i => (
-                              <li key={i.to}>
-                                <NavLink
-                                  to={i.to}
-                                  onClick={() => { setMobileOpen(false); setOpenGroup(null); }}
-                                  className={({ isActive }) =>
-                                    `flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${
-                                      isActive ? "bg-green-600 text-white" : "text-green-700 hover:bg-green-100"
-                                    }`
-                                  }
-                                >
-                                  {i.label}
-                                </NavLink>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  <div className="flex flex-wrap gap-2">
-                    {singles.map(s => (
-                      <NavLink
-                        key={s.to}
-                        to={s.to}
-                        onClick={() => setMobileOpen(false)}
-                        className={({ isActive }) =>
-                          `flex-1 min-w-[120px] text-center px-3 py-3 rounded-2xl text-sm font-semibold ${
-                            isActive
-                              ? "bg-green-600 text-white shadow"
-                              : "bg-green-100 text-green-800 hover:bg-green-200"
-                          }`
-                        }
-                      >
-                        {s.label}
-                      </NavLink>
-                    ))}
-                    {user?.is_admin && (
-                      <NavLink
-                        to="/users"
-                        onClick={() => setMobileOpen(false)}
-                        className={({ isActive }) =>
-                          `flex-1 min-w-[120px] px-3 py-3 rounded-2xl text-sm font-semibold admin-create-btn ${
-                            isActive ? "is-active" : ""
-                          }`
-                        }
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M4 12h16"/>
-                        </svg>
-                        {lang.startsWith("ar") ? "إنشاء مدير" : "Créer Admin"}
-                      </NavLink>
-                    )}
-                    {user && (
+            {/* Mobile menu (REWRITTEN) */}
+            <div
+              className="mobile-menu-transition mobile-area mb-3"
+              style={{maxHeight: mobileHeight, opacity: mobileOpen?1:0}}
+            >
+              <div
+                id="mobileNavPanel"
+                ref={mobileMenuRef}
+                className="mobile-menu-panel p-4 grid gap-4"
+                role="dialog"
+                aria-modal="true"
+              >
+                {groups.map(g => {
+                  const open = openGroup === g.key;
+                  return (
+                    <div key={g.key} className="rounded-2xl border border-green-200 overflow-hidden">
                       <button
-                        onClick={() => { logout(); setMobileOpen(false); }}
-                        className="flex-1 min-w-[120px] px-3 py-3 rounded-2xl text-sm font-semibold logout-btn"
+                        type="button"
+                        onClick={() => toggleGroupMobile(g.key)}   // CHANGED
+                        className={`w-full text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide flex items-center justify-between ${
+                          open ? "bg-green-600 text-white" : "text-green-800 bg-green-50"
+                        }`}
+                        aria-expanded={open}
+                        aria-controls={`mob-group-${g.key}`}
                       >
-                        <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3"/>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M11 8l-4 4 4 4"/>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 4v16"/>
-                        </svg>
-                        {lang.startsWith("ar") ? "تسجيل الخروج" : t("logout")}
+                        <span>{g.label}</span>
+                        <svg
+                          className={`w-4 h-4 transition-transform ${open?"rotate-180":""}`}
+                          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                        ><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                       </button>
-                    )}
-                  </div>
+                      <div
+                        id={`mob-group-${g.key}`}
+                        className="grid transition-all"
+                        style={{gridTemplateRows: open?'1fr':'0fr', transition:'grid-template-rows .45s'}}
+                      >
+                        <ul className="overflow-hidden flex flex-col gap-1 pb-3 pt-2 px-3">
+                          {g.items.map(i => (
+                            <li key={i.to}>
+                              <NavLink
+                                to={i.to}
+                                onClick={() => { setMobileOpen(false); setOpenGroup(null); }}
+                                className={({ isActive }) =>
+                                  `flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${
+                                    isActive ? "bg-green-600 text-white" : "text-green-700 hover:bg-green-100"
+                                  }`
+                                }
+                              >
+                                {i.label}
+                              </NavLink>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                })}
 
-                  <div className="flex items-center justify-center gap-3 pt-1">
-                    <button
-                      onClick={() => handleLangSwitch("fr")}
-                      className={`px-4 py-1 rounded-full text-sm font-bold ${
-                        lang === "fr" ? "bg-green-600 text-white shadow" : "bg-green-100 text-green-700 hover:bg-green-200"
-                      }`}
+                {/* unchanged parts below except removed conditional mobileOpen wrapper */}
+                {/* Singles / admin / logout */}
+                <div className="flex flex-wrap gap-2">
+                  {singles.map(s => (
+                    <NavLink
+                      key={s.to}
+                      to={s.to}
+                      onClick={() => setMobileOpen(false)}
+                      className={({ isActive }) =>
+                        `flex-1 min-w-[120px] text-center px-3 py-3 rounded-2xl text-sm font-semibold ${
+                          isActive
+                            ? "bg-green-600 text-white shadow"
+                            : "bg-green-100 text-green-800 hover:bg-green-200"
+                        }`
+                      }
                     >
-                      FR
-                    </button>
-                    <button
-                      onClick={() => handleLangSwitch("ar")}
-                      className={`px-4 py-1 rounded-full text-sm font-bold ${
-                        lang === "ar" ? "bg-green-600 text-white shadow" : "bg-green-100 text-green-700 hover:bg-green-200"
-                      }`}
+                      {s.label}
+                    </NavLink>
+                  ))}
+                  {user?.is_admin && (
+                    <NavLink
+                      to="/users"
+                      onClick={() => setMobileOpen(false)}
+                      className={({ isActive }) =>
+                        `flex-1 min-w-[120px] px-3 py-3 rounded-2xl text-sm font-semibold admin-create-btn ${
+                          isActive ? "is-active" : ""
+                        }`
+                      }
                     >
-                      AR
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16M4 12h16"/>
+                      </svg>
+                      {lang.startsWith("ar") ? "إنشاء مدير" : "Créer Admin"}
+                    </NavLink>
+                  )}
+                  {user && (
+                    <button
+                      onClick={() => { logout(); setMobileOpen(false); }}
+                      className="flex-1 min-w-[120px] px-3 py-3 rounded-2xl text-sm font-semibold logout-btn"
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12H3"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 8l-4 4 4 4"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 4v16"/>
+                      </svg>
+                      {lang.startsWith("ar") ? "تسجيل الخروج" : t("logout")}
                     </button>
-                  </div>
+                  )}
                 </div>
-              )}
+
+                {/* Mobile language switch */}
+                <div className="flex items-center justify-center gap-3 pt-2">
+                  <button
+                    onClick={()=>handleLangSwitch('fr')}
+                    className={`px-5 py-2 rounded-full text-sm font-bold ${
+                      lang==='fr' ? 'bg-green-600 text-white shadow' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    }`}
+                    aria-pressed={lang==='fr'}
+                  >FR</button>
+                  <button
+                    onClick={()=>handleLangSwitch('ar')}
+                    className={`px-5 py-2 rounded-full text-sm font-bold ${
+                      lang==='ar' ? 'bg-green-600 text-white shadow' : 'bg-green-100 text-green-700 hover:bg-green-200'
+                    }`}
+                    aria-pressed={lang==='ar'}
+                  >AR</button>
+                </div>
+              </div>
             </div>
           </div>
         </nav>

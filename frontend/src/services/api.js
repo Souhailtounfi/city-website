@@ -1,14 +1,15 @@
 import axios from "axios";
 
-// Create an Axios instance
 const api = axios.create({
-  baseURL: "http://localhost:8000/api", 
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
+  withCredentials: false
 });
 
-// Add token from localStorage if it exists
-const token = localStorage.getItem("token");
-if (token) {
-  api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-}
+// Si tu as un token auth stocké
+api.interceptors.request.use(cfg=>{
+  const token = localStorage.getItem("token");
+  if(token) cfg.headers.Authorization = `Bearer ${token}`;
+  return cfg;
+});
 
 export default api;

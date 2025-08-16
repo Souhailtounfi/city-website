@@ -13,6 +13,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import PresentationGenerale from "./pages/PresentationGenerale";
 import ApercuHistorique from "./pages/ApercuHistorique";
 import SituationGeographique from "./pages/SituationGeographique";
+import "./styles/mobile-fixes.css";
 
 function App() {
   const [lang, setLang] = useState("fr");

@@ -26,17 +26,9 @@ Route::get('/news/{id}', [NewsController::class, 'show']);
 // Public pages
 Route::get('/pages', [PageController::class,'index']);
 Route::get('/pages/{slug}', [PageController::class,'show']);
-Route::middleware('auth:sanctum')->post('/pages', [PageController::class,'store']);
-Route::middleware('auth:sanctum')->put('/pages/{slug}', [PageController::class,'update']);
-Route::middleware('auth:sanctum')->post('/pages/{slug}/gallery', [PageController::class,'addGalleryImage']);
-Route::middleware('auth:sanctum')->delete('/pages/{slug}/gallery/{index}', [PageController::class,'deleteGalleryImage']);
 
 // Authenticated (personal access token) routes
 Route::middleware(['auth:sanctum'])->group(function () {
-
-    Route::get('/user', function () {
-        return auth()->user();
-    });
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -47,4 +39,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/news/{id}/images', [NewsImageController::class, 'store']); // upload multiples
         Route::delete('/news-images/{id}', [NewsImageController::class, 'destroy']);
     });
+
+    Route::post('/pages/{slug}', [PageController::class,'upsert']); // add auth middleware if required
+    Route::post('/pages-asset', [PageController::class,'uploadAsset']); // auth protect too
+    Route::middleware('auth:sanctum')->post('/pages', [PageController::class,'store']);
+    Route::middleware('auth:sanctum')->put('/pages/{slug}', [PageController::class,'update']);
+    Route::middleware('auth:sanctum')->post('/pages/{slug}/gallery', [PageController::class,'addGalleryImage']);
+    Route::middleware('auth:sanctum')->delete('/pages/{slug}/gallery/{index}', [PageController::class,'deleteGalleryImage']);
 });

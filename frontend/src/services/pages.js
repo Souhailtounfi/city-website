@@ -1,16 +1,21 @@
 import api from "./api";
 
-export const fetchPage  = slug => api.get(`/pages/${slug}`).then(r=>r.data);
-export const createPage = data => api.post(`/pages`, data).then(r=>r.data);
-export const updatePage = (slug,data) => api.put(`/pages/${slug}`, data).then(r=>r.data);
+export async function fetchPage(slug){
+  const { data } = await api.get(`/pages/${slug}`);
+  return data;
+}
 
-export const uploadPageImage = (slug,file) => {
-  const fd = new FormData();
-  fd.append('image', file);
-  return api.post(`/pages/${slug}/gallery`, fd, {
-    headers:{'Content-Type':'multipart/form-data'}
-  }).then(r=>r.data);
-};
+export async function savePage(slug, payload){
+  // payload: { title_fr, title_ar, blocks:[...] }
+  const { data } = await api.post(`/pages/${slug}`, payload, {
+    headers:{ 'Content-Type':'application/json' }
+  });
+  return data;
+}
 
-export const deletePageImage = (slug,index) =>
-  api.delete(`/pages/${slug}/gallery/${index}`).then(r=>r.data);
+export async function uploadBlockImage(file){
+  const form = new FormData();
+  form.append('file', file);
+  const { data } = await api.post('/pages-asset', form);
+  return data.path; // on ne stocke que le path en DB
+}

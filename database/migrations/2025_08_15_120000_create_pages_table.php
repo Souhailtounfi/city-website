@@ -4,19 +4,17 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-  public function up(): void {
-    Schema::create('pages', function (Blueprint $table) {
-      $table->id();
-      $table->string('slug')->unique();          // presentation-generale, apercu-historique, situation-geographique
-      $table->string('title_fr')->nullable();
-      $table->string('title_ar')->nullable();
-      $table->longText('content_fr')->nullable();
-      $table->longText('content_ar')->nullable();
-      $table->json('extra')->nullable();         // map_url etc.
-      $table->timestamps();
-    });
-  }
-  public function down(): void {
-    Schema::dropIfExists('pages');
-  }
+    public function up(): void {
+        Schema::create('pages', function (Blueprint $table) {
+            $table->id();
+            $table->string('slug')->unique();
+            $table->string('title_fr')->nullable();
+            $table->string('title_ar')->nullable();
+            $table->json('meta')->nullable();
+            $table->timestamps();
+        });
+    }
+    public function down(): void {
+        Schema::dropIfExists('pages');
+    }
 };
